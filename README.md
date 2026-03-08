@@ -5,14 +5,14 @@ A complete backend API for managing restaurants, users, menu items, orders, and 
 ## Project Overview
 
 This system enables:
-- ✓ **25,359+ restaurants** with geospatial location support
-- ✓ **165,459 menu items** (6-7 per restaurant, cuisine-appropriate)
-- ✓ **10,000 users** with geolocation coordinates and unique emails
-- ✓ **25,027 orders** with geolocation-based restaurant selection
-- ✓ **3,136 coherent reviews** with cuisine and rating-specific content
-- ✓ Order creation and status tracking with multi-item support
-- ✓ Automatic restaurant rating calculations
-- ✓ Complete order history and analytics
+- **25,359+ restaurants** with geospatial location support
+- **165,459 menu items** (6-7 per restaurant, cuisine-appropriate)
+- **10,000 users** with geolocation coordinates and unique emails
+- **25,027 orders** with geolocation-based restaurant selection
+- **3,136 coherent reviews** with cuisine and rating-specific content
+- Order creation and status tracking with multi-item support
+- Automatic restaurant rating calculations
+- Complete order history and analytics
 
 ## Technology Stack
 
