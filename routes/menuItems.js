@@ -55,7 +55,7 @@ router.patch('/:id/disponibilidad', menuItemController.cambiarDisponibilidad);
  * Actualizar precios por categoría (updateMany)
  * PATCH /menu-items/categoria/precio
  */
-router.patch('/categoria/precio', menuItemController.actualizarPrecioCategoria);
+router.patch('/categoria/precio', menuItemController.actualizarPreciosPorCategoria);
 
 
 /**

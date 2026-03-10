@@ -76,17 +76,25 @@ exports.actualizarMenuItem = async (req, res) => {
  * Actualizar múltiples items por categoría
  * Uso de updateMany
  */
-exports.actualizarPrecioCategoria = async (req, res) => {
+exports.actualizarPreciosPorCategoria = async (req, res) => {
 
   try {
 
-    const { categoria, nuevoPrecio } = req.body
+    const { categoria, incremento } = req.body
+
+    const incrementoNum = Number(incremento)
+
+    if (isNaN(incrementoNum)) {
+      return res.status(400).json({
+        error: "Incremento debe ser un número"
+      })
+    }
+
+    const factor = 1 + incrementoNum / 100
 
     const resultado = await MenuItem.updateMany(
-
-      { categoria: categoria },
-      { $set: { precio: nuevoPrecio } }
-
+      { categoria },
+      { $mul: { precio: factor } }
     )
 
     res.json(resultado)

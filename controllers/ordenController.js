@@ -19,7 +19,7 @@ exports.crearOrden = async (req, res) => {
 
     session.startTransaction()
 
-    const { usuarioId, restauranteId, items } = req.body
+    const { usuarioId, restauranteId, items, direccionEntrega } = req.body
 
     const usuario = await Usuario.findById(usuarioId).session(session)
 
@@ -35,7 +35,12 @@ exports.crearOrden = async (req, res) => {
     for (const item of items) {
 
       const menuItem = await MenuItem.findById(item.menuItemId).session(session)
+      if (!menuItem) {
 
+        throw new Error(`Item de menú no encontrado: ${item.menuItemId}`)
+
+      }
+      
       const subtotal = menuItem.precio * item.cantidad
 
       total += subtotal
@@ -57,7 +62,8 @@ exports.crearOrden = async (req, res) => {
       usuarioId,
       restauranteId,
       items: itemsOrden,
-      total
+      total,
+      direccionEntrega
 
     })
 
@@ -120,7 +126,7 @@ exports.eliminarOrdenesCanceladas = async (req, res) => {
 
     const resultado = await Orden.deleteMany({
 
-      estado: "CANCELADA"
+      estado: { $regex: "^cancelada$", $options: "i" }
 
     })
 

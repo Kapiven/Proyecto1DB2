@@ -67,9 +67,9 @@ exports.restaurantesPorCuisine = async (req, res) => {
 
   try {
 
-    const restaurantes = await Restaurante.find({
-      cuisine: req.params.cuisine
-    })
+    const restaurantes = await Restaurante
+    .find({cuisine: req.params.cuisine})
+    .limit(10)
 
     res.json(restaurantes)
 
@@ -203,6 +203,22 @@ exports.eliminarRestaurante = async (req, res) => {
     const resultado = await Restaurante.deleteOne({ _id: req.params.id })
 
     res.json(resultado)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+exports.contarRestaurantes = async (req, res) => {
+
+  try {
+
+    const total = await Restaurante.countDocuments()
+
+    res.json({ total })
 
   } catch (error) {
 

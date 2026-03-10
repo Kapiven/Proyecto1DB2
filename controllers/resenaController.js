@@ -1,6 +1,7 @@
 /**
  * Controller de Reseñas
  */
+const mongoose = require("mongoose")
 
 const Resena = require("../models/Resena")
 
@@ -69,33 +70,19 @@ exports.eliminarResena = async (req, res) => {
 exports.topRestaurantes = async (req, res) => {
 
   try {
-
     const resultado = await Resena.aggregate([
-
       {
-
         $group: {
-
           _id: "$restauranteId",
-
           promedioRating: { $avg: "$rating" },
-
           totalResenas: { $sum: 1 }
-
         }
-
       },
-
       {
-
         $sort: { promedioRating: -1 }
-
       },
-
       {
-
         $limit: 5
-
       }
 
     ])
@@ -189,7 +176,7 @@ exports.estadisticasRestaurante = async (req, res) => {
 
       {
         $match: {
-          restauranteId: req.params.restauranteId
+          restauranteId: new mongoose.Types.ObjectId(req.params.restauranteId)
         }
       },
 
@@ -197,13 +184,15 @@ exports.estadisticasRestaurante = async (req, res) => {
         $group: {
           _id: "$restauranteId",
           promedioRating: { $avg: "$rating" },
-          totalResenas: { $sum: 1 }
+          totalResenas: { $sum: 1 },
+          maxRating: { $max: "$rating" },
+          minRating: { $min: "$rating" }
         }
       }
 
     ])
 
-    res.json(resultado)
+    res.json(resultado[0] || { mensaje: "No hay reseñas para este restaurante" })
 
   } catch (error) {
 
