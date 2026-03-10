@@ -1,168 +1,261 @@
-const Orden = require('../models/Orden');
-const MenuItem = require('../models/MenuItem');
-const Usuario = require('../models/Usuario');
+/**
+ * Controller de Órdenes
+ */
 
-// Crear orden
+const Orden = require("../models/Orden")
+const Usuario = require("../models/Usuario")
+const MenuItem = require("../models/MenuItem")
+const mongoose = require("mongoose")
+
+/**
+ * Crear una orden
+ * Implementa TRANSACCIÓN
+ */
 exports.crearOrden = async (req, res) => {
-  try {
-    const { usuarioId, restauranteId, items, direccionEntrega, comentarios } = req.body;
 
-    // Validar usuario existe
-    const usuario = await Usuario.findById(usuarioId);
+  const session = await mongoose.startSession()
+
+  try {
+
+    session.startTransaction()
+
+    const { usuarioId, restauranteId, items } = req.body
+
+    const usuario = await Usuario.findById(usuarioId).session(session)
+
     if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
+
+      throw new Error("Usuario no encontrado")
+
     }
 
-    let total = 0;
-    const itemsOrden = [];
+    let total = 0
+    const itemsOrden = []
 
-    // Procesar items y calcular total
     for (const item of items) {
-      const menuItem = await MenuItem.findById(item.menuItemId);
-      if (!menuItem) {
-        return res.status(404).json({ error: `Item ${item.menuItemId} no encontrado` });
-      }
 
-      const subtotal = menuItem.precio * item.cantidad;
-      total += subtotal;
+      const menuItem = await MenuItem.findById(item.menuItemId).session(session)
+
+      const subtotal = menuItem.precio * item.cantidad
+
+      total += subtotal
 
       itemsOrden.push({
+
         menuItemId: menuItem._id,
         nombre: menuItem.nombre,
         precioUnitario: menuItem.precio,
         cantidad: item.cantidad,
-        subtotal
-      });
+        subtotal: subtotal
+
+      })
+
     }
 
     const nuevaOrden = new Orden({
+
       usuarioId,
       restauranteId,
       items: itemsOrden,
-      total,
-      direccionEntrega: {
-        building: direccionEntrega.building,
-        street: direccionEntrega.street,
-        zipcode: direccionEntrega.zipcode,
-        borough: direccionEntrega.borough
-      },
-      comentarios
-    });
+      total
 
-    const orden = await nuevaOrden.save();
-    
-    // Actualizar total gastado del usuario
-    usuario.totalGastado += total;
-    await usuario.save();
+    })
 
-    res.status(201).json(orden);
+    const orden = await nuevaOrden.save({ session })
+
+    usuario.totalGastado += total
+
+    await usuario.save({ session })
+
+    await session.commitTransaction()
+
+    res.status(201).json(orden)
+
   } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
 
-// Obtener órdenes de un usuario
+    await session.abortTransaction()
+
+    res.status(500).json({ error: error.message })
+
+  } finally {
+
+    session.endSession()
+
+  }
+
+}
+
+
+/**
+ * Obtener órdenes de un usuario
+ * Uso de sort y limit
+ */
 exports.obtenerOrdenesUsuario = async (req, res) => {
-  try {
-    const ordenes = await Orden.find({ usuarioId: req.params.usuarioId })
-      .populate('restauranteId', 'nombre')
-      .sort({ fechaOrden: -1 });
-    res.json(ordenes);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-// Obtener órdenes de un restaurante
-exports.obtenerOrdenesRestaurante = async (req, res) => {
   try {
-    const ordenes = await Orden.find({ restauranteId: req.params.restauranteId })
-      .populate('usuarioId', 'nombre email telefono')
-      .sort({ fechaOrden: -1 });
-    res.json(ordenes);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-// Obtener orden por ID
+    const ordenes = await Orden
+      .find({ usuarioId: req.params.usuarioId })
+      .sort({ fecha: -1 })
+      .limit(10)
+
+    res.json(ordenes)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+
+/**
+ * Eliminar órdenes canceladas
+ * Uso de deleteMany
+ */
+exports.eliminarOrdenesCanceladas = async (req, res) => {
+
+  try {
+
+    const resultado = await Orden.deleteMany({
+
+      estado: "CANCELADA"
+
+    })
+
+    res.json(resultado)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+/**
+ * Obtener todas las órdenes
+ */
+exports.obtenerOrdenes = async (req, res) => {
+
+  try {
+    const ordenes = await Orden.find()
+    res.json(ordenes)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+
+/**
+ * Obtener orden por ID
+ */
 exports.obtenerOrdenPorId = async (req, res) => {
+
   try {
+
     const orden = await Orden.findById(req.params.id)
-      .populate('usuarioId')
-      .populate('restauranteId')
-      .populate('items.menuItemId');
-    
-    if (!orden) {
-      return res.status(404).json({ error: 'Orden no encontrada' });
-    }
-    res.json(orden);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-// Actualizar estado de orden
+    if (!orden) {
+      return res.status(404).json({ error: "Orden no encontrada" })
+    }
+
+    res.json(orden)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+
+/**
+ * Actualizar estado de orden
+ */
 exports.actualizarEstadoOrden = async (req, res) => {
+
   try {
-    const { nuevoEstado } = req.body;
-    const orden = await Orden.findById(req.params.id);
 
-    if (!orden) {
-      return res.status(404).json({ error: 'Orden no encontrada' });
-    }
+    const resultado = await Orden.updateOne(
+      { _id: req.params.id },
+      { $set: { estado: req.body.estado } }
+    )
 
-    // Validar que no sea ENTREGADA
-    if (orden.estado === 'ENTREGADA') {
-      return res.status(400).json({ error: 'No se puede modificar una orden entregada' });
-    }
+    res.json(resultado)
 
-    orden.estado = nuevoEstado;
-    if (nuevoEstado === 'ENTREGADA') {
-      orden.fechaEntrega = new Date();
-    }
-
-    const ordenActualizada = await orden.save();
-    res.json(ordenActualizada);
   } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
 
-// Obtener órdenes por estado
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+/**
+ * Obtener órdenes de un restaurante
+ */
+exports.obtenerOrdenesRestaurante = async (req, res) => {
+
+  try {
+
+    const ordenes = await Orden.find({
+      restauranteId: req.params.restauranteId
+    }).sort({ fecha: -1 })
+
+    res.json(ordenes)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+
+/**
+ * Obtener órdenes por estado
+ */
 exports.obtenerOrdenesPorEstado = async (req, res) => {
-  try {
-    const { estado } = req.params;
-    const ordenes = await Orden.find({ estado })
-      .sort({ fechaOrden: -1 });
-    res.json(ordenes);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-// Cancelar orden
+  try {
+
+    const ordenes = await Orden.find({
+      estado: req.params.estado
+    })
+
+    res.json(ordenes)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+
+/**
+ * Cancelar orden
+ */
 exports.cancelarOrden = async (req, res) => {
+
   try {
-    const orden = await Orden.findById(req.params.id);
 
-    if (!orden) {
-      return res.status(404).json({ error: 'Orden no encontrada' });
-    }
+    const resultado = await Orden.updateOne(
+      { _id: req.params.id },
+      { $set: { estado: "CANCELADA" } }
+    )
 
-    if (orden.estado === 'ENTREGADA') {
-      return res.status(400).json({ error: 'No se puede cancelar una orden entregada' });
-    }
+    res.json(resultado)
 
-    if (orden.estado === 'CANCELADA') {
-      return res.status(400).json({ error: 'La orden ya está cancelada' });
-    }
-
-    orden.estado = 'CANCELADA';
-    const ordenActualizada = await orden.save();
-
-    res.json({ mensaje: 'Orden cancelada', orden: ordenActualizada });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+
+    res.status(500).json({ error: error.message })
+
   }
-};
+
+}

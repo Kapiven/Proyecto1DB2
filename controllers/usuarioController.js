@@ -1,137 +1,221 @@
-const Usuario = require('../models/Usuario');
-const crypto = require('crypto');
+/**
+ * Controller de Usuarios
+ * Maneja todas las operaciones CRUD sobre la colección Usuarios
+ */
 
-// Función para hashear contraseñas (simple, en producción usar bcrypt)
-const hashPassword = (password) => {
-  return crypto.createHash('sha256').update(password).digest('hex');
-};
+const Usuario = require("../models/Usuario")
 
-// Registrar usuario
-exports.registrarUsuario = async (req, res) => {
+/**
+ * Crear un usuario
+ * Equivale a insertOne en MongoDB
+ */
+exports.crearUsuario = async (req, res) => {
+
   try {
-    const { nombre, email, password, address, telefono } = req.body;
 
-    // Verificar si el email ya existe
-    const usuarioExistente = await Usuario.findOne({ email });
-    if (usuarioExistente) {
-      return res.status(400).json({ error: 'El email ya está registrado' });
-    }
+    const usuario = new Usuario(req.body)
 
-    const nuevoUsuario = new Usuario({
-      nombre,
-      email,
-      passwordHash: hashPassword(password),
-      address: {
-        building: address.building,
-        street: address.street,
-        zipcode: address.zipcode,
-        borough: address.borough,
-        coord: address.coord
-      },
-      telefono
-    });
+    const resultado = await usuario.save()
 
-    const usuario = await nuevoUsuario.save();
-    const usuarioSinPassword = usuario.toObject();
-    delete usuarioSinPassword.passwordHash;
-    
-    res.status(201).json(usuarioSinPassword);
+    res.status(201).json(resultado)
+
   } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
 
-// Obtener todos los usuarios
+    res.status(400).json({ error: error.message })
+
+  }
+
+}
+
+
+/**
+ * Obtener todos los usuarios
+ * Uso de find()
+ */
 exports.obtenerUsuarios = async (req, res) => {
-  try {
-    const usuarios = await Usuario.find().select('-passwordHash');
-    res.json(usuarios);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-// Obtener usuario por ID
+  try {
+
+    const usuarios = await Usuario
+      .find()
+      .select("-passwordHash") // no mostrar contraseña
+
+    res.json(usuarios)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+
+/**
+ * Obtener un usuario por ID
+ * Uso de findById()
+ */
 exports.obtenerUsuarioPorId = async (req, res) => {
-  try {
-    const usuario = await Usuario.findById(req.params.id).select('-passwordHash');
-    if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-    res.json(usuario);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-// Actualizar usuario
+  try {
+
+    const usuario = await Usuario.findById(req.params.id)
+
+    if (!usuario) {
+
+      return res.status(404).json({ error: "Usuario no encontrado" })
+
+    }
+
+    res.json(usuario)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+
+/**
+ * Actualizar usuario
+ * Uso de updateOne()
+ */
 exports.actualizarUsuario = async (req, res) => {
+
   try {
-    const actualizacion = { ...req.body };
-    
-    // No permitir cambio de email desde este endpoint
-    delete actualizacion.email;
-    delete actualizacion.passwordHash;
 
-    const usuario = await Usuario.findByIdAndUpdate(
-      req.params.id,
-      actualizacion,
-      { new: true, runValidators: true }
-    ).select('-passwordHash');
+    const resultado = await Usuario.updateOne(
 
-    if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-    
-    res.json(usuario);
+      { _id: req.params.id },
+      { $set: req.body }
+
+    )
+
+    res.json(resultado)
+
   } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
 
-// Obtener usuarios por borough
-exports.obtenerUsuariosPorBorough = async (req, res) => {
-  try {
-    const { borough } = req.params;
-    const usuarios = await Usuario.find({ 'address.borough': borough }).select('-passwordHash');
-    res.json(usuarios);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+    res.status(500).json({ error: error.message })
 
-// Eliminar usuario
+  }
+
+}
+
+
+/**
+ * Eliminar usuario
+ * Uso de deleteOne()
+ */
 exports.eliminarUsuario = async (req, res) => {
-  try {
-    const usuario = await Usuario.findByIdAndDelete(req.params.id);
-    if (!usuario) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-    res.json({ mensaje: 'Usuario eliminado' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
-// Login usuario
+  try {
+
+    const resultado = await Usuario.deleteOne({ _id: req.params.id })
+
+    res.json(resultado)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+
+/**
+ * Obtener los usuarios que más han gastado
+ * Uso de sort + limit
+ */
+exports.topUsuarios = async (req, res) => {
+
+  try {
+
+    const usuarios = await Usuario
+      .find()
+      .sort({ totalGastado: -1 })
+      .limit(5)
+
+    res.json(usuarios)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+/**
+ * Obtener usuario por email
+ */
+exports.obtenerUsuarioPorEmail = async (req, res) => {
+
+  try {
+
+    const usuario = await Usuario.findOne({
+      email: req.params.email
+    })
+
+    if (!usuario) {
+      return res.status(404).json({ error: "Usuario no encontrado" })
+    }
+
+    res.json(usuario)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+/**
+ * Login de usuario
+ */
 exports.loginUsuario = async (req, res) => {
+
   try {
-    const { email, password } = req.body;
 
-    const usuario = await Usuario.findOne({ email });
+    const { email } = req.body
+
+    const usuario = await Usuario.findOne({ email })
+
     if (!usuario) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
+      return res.status(404).json({ error: "Usuario no encontrado" })
     }
 
-    if (usuario.passwordHash !== hashPassword(password)) {
-      return res.status(401).json({ error: 'Credenciales inválidas' });
-    }
+    res.json(usuario)
 
-    const usuarioSinPassword = usuario.toObject();
-    delete usuarioSinPassword.passwordHash;
-
-    res.json({ mensaje: 'Login exitoso', usuario: usuarioSinPassword });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+
+    res.status(500).json({ error: error.message })
+
   }
-};
+
+}
+
+
+/**
+ * Obtener usuarios por borough
+ */
+exports.obtenerUsuariosPorBorough = async (req, res) => {
+
+  try {
+
+    const usuarios = await Usuario.find({
+      borough: req.params.borough
+    })
+
+    res.json(usuarios)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}

@@ -1,3 +1,5 @@
+// Este archivo no es necesario
+
 const mongoose = require('mongoose');
 
 const SampleSchema = new mongoose.Schema({

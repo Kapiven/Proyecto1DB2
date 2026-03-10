@@ -284,7 +284,7 @@ GET /ordenes/restaurante/{restaurantId}?page=1&limit=10
 
 ### Create Review (Only for Delivered Orders)
 ```
-POST /reseñas
+POST /resenas
 Content-Type: application/json
 
 {
@@ -298,17 +298,17 @@ Content-Type: application/json
 
 ### Get All Reviews
 ```
-GET /reseñas?page=1&limit=10
+GET /resenas?page=1&limit=10
 ```
 
 ### Get Review by ID
 ```
-GET /reseñas/{reviewId}
+GET /resenas/{reviewId}
 ```
 
 ### Update Review (Only if Order ENTREGADA)
 ```
-PUT /reseñas/{reviewId}
+PUT /resenas/{reviewId}
 Content-Type: application/json
 
 {
@@ -319,17 +319,17 @@ Content-Type: application/json
 
 ### Delete Review
 ```
-DELETE /reseñas/{reviewId}
+DELETE /resenas/{reviewId}
 ```
 
 ### Get Restaurant Reviews
 ```
-GET /reseñas/restaurante/{restaurantId}?page=1&limit=10
+GET /resenas/restaurante/{restaurantId}?page=1&limit=10
 ```
 
 ### Get User Reviews
 ```
-GET /reseñas/usuario/{userId}?page=1&limit=10
+GET /resenas/usuario/{userId}?page=1&limit=10
 ```
 
 ---
