@@ -99,23 +99,65 @@ async function ejecutar(op) {
                 rl.question("Nombre: ", nombre => {
                     rl.question("Email: ", email => {
                         rl.question("Telefono: ", telefono => {
-                            rl.question("Borough: ", async borough => {
+                            rl.question("Building: ", building => {
+                                rl.question("Street: ", street => {
+                                    rl.question("Zipcode: ", zipcode => {
+                                        rl.question("Borough (Manhattan/Brooklyn/Queens/Bronx/Staten Island): ", borough => {
+                                            rl.question("¿Desea ingresar coordenadas? (s/n): ", wantsCoords => {
+                                                if ((wantsCoords || '').toLowerCase() === 's') {
+                                                    rl.question("Coord longitud: ", lon => {
+                                                        rl.question("Coord latitud: ", async lat => {
 
-                                const res = await fetch(`${API}/usuarios/registro`, {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
-                                        nombre,
-                                        email,
-                                        telefono,
-                                        borough,
-                                        passwordHash: "123456"
+                                                            const res = await fetch(`${API}/usuarios/registro`, {
+                                                                method: "POST",
+                                                                headers: { "Content-Type": "application/json" },
+                                                                body: JSON.stringify({
+                                                                    nombre,
+                                                                    email,
+                                                                    telefono,
+                                                                    passwordHash: "123456",
+                                                                    address: {
+                                                                        building,
+                                                                        street,
+                                                                        zipcode,
+                                                                        borough,
+                                                                        coord: [Number(lon), Number(lat)]
+                                                                    }
+                                                                })
+                                                            })
+
+                                                            console.log(await res.json())
+                                                            menu()
+
+                                                        })
+                                                    })
+                                                } else {
+                                                    (async () => {
+                                                        const res = await fetch(`${API}/usuarios/registro`, {
+                                                            method: "POST",
+                                                            headers: { "Content-Type": "application/json" },
+                                                            body: JSON.stringify({
+                                                                nombre,
+                                                                email,
+                                                                telefono,
+                                                                passwordHash: "123456",
+                                                                address: {
+                                                                    building,
+                                                                    street,
+                                                                    zipcode,
+                                                                    borough
+                                                                }
+                                                            })
+                                                        })
+
+                                                        console.log(await res.json())
+                                                        menu()
+                                                    })()
+                                                }
+                                            })
+                                        })
                                     })
                                 })
-
-                                console.log(await res.json())
-                                menu()
-
                             })
                         })
                     })
@@ -380,7 +422,7 @@ async function ejecutar(op) {
 
             case "17":
 
-                const distinct = await fetch(`${API}/restaurantes/cuisine/${cuisine}`)
+                const distinct = await fetch(`${API}/restaurantes/cuisine/distinct`)
                 console.log(await distinct.json())
                 break
 
