@@ -96,4 +96,7 @@ restauranteSchema.index({ "address.borough": 1 });
 // consultas por cuisine
 restauranteSchema.index({ cuisine: 1 });
 
+// consulta de búsqueda por texto
+restauranteSchema.index({ name: "text", cuisine: "text" });
+
 module.exports = mongoose.model('Restaurante', restauranteSchema);

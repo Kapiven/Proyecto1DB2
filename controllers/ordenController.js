@@ -265,3 +265,113 @@ exports.cancelarOrden = async (req, res) => {
   }
 
 }
+
+/**
+ * Top platillos vendidos
+ * Uso de Aggregation Pipeline
+ */
+exports.topPlatillosVendidos = async (req, res) => {
+
+  try {
+
+    const resultado = await Orden.aggregate([
+
+      { $match: { estado: "ENTREGADA" } },
+
+      { $unwind: "$items" },
+
+      {
+        $group: {
+          _id: "$items.menuItemId",
+          totalVendidos: { $sum: "$items.cantidad" },
+          totalIngresos: { $sum: "$items.subtotal" }
+        }
+      },
+
+      {
+        $lookup: {
+          from: "menuitems",
+          localField: "_id",
+          foreignField: "_id",
+          as: "menuItem"
+        }
+      },
+
+      { $unwind: "$menuItem" },
+
+      {
+        $project: {
+          nombre: "$menuItem.nombre",
+          totalVendidos: 1,
+          totalIngresos: 1
+        }
+      },
+
+      { $sort: { totalVendidos: -1 } },
+
+      { $limit: 10 }
+
+    ])
+
+    res.json(resultado)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}
+
+/**
+ * Ventas mensuales
+ */
+
+exports.ventasMensuales = async (req, res) => {
+
+  try {
+
+    const resultado = await Orden.aggregate([
+
+      { $match: { estado: "ENTREGADA" } },
+
+      {
+        $group: {
+
+          _id: {
+            $dateTrunc: {
+              date: "$fechaOrden",
+              unit: "month"
+            }
+          },
+
+          ventasTotales: { $sum: "$total" },
+          totalOrdenes: { $sum: 1 },
+          ticketPromedio: { $avg: "$total" }
+
+        }
+
+      },
+
+      {
+        $project: {
+          mes: "$_id",
+          ventasTotales: 1,
+          totalOrdenes: 1,
+          ticketPromedio: { $round: ["$ticketPromedio", 2] }
+        }
+      },
+
+      { $sort: { mes: 1 } }
+
+    ])
+
+    res.json(resultado)
+
+  } catch (error) {
+
+    res.status(500).json({ error: error.message })
+
+  }
+
+}

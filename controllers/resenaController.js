@@ -70,20 +70,39 @@ exports.eliminarResena = async (req, res) => {
 exports.topRestaurantes = async (req, res) => {
 
   try {
+
     const resultado = await Resena.aggregate([
+
       {
         $group: {
           _id: "$restauranteId",
-          promedioRating: { $avg: "$rating" },
+          ratingPromedio: { $avg: "$rating" },
           totalResenas: { $sum: 1 }
         }
       },
+
       {
-        $sort: { promedioRating: -1 }
+        $lookup: {
+          from: "restaurantes",
+          localField: "_id",
+          foreignField: "_id",
+          as: "restaurante"
+        }
       },
+
+      { $unwind: "$restaurante" },
+
       {
-        $limit: 5
-      }
+        $project: {
+          restaurante: "$restaurante.name",
+          ratingPromedio: 1,
+          totalResenas: 1
+        }
+      },
+
+      { $sort: { ratingPromedio: -1 } },
+
+      { $limit: 10 }
 
     ])
 
